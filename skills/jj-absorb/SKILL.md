@@ -1,7 +1,9 @@
 ---
 name: jj-absorb
 description: Auto-distribute working-copy edits into the ancestor commits that introduced those lines
+argument-hint: "[paths...]"
 disable-model-invocation: true
+allowed-tools: Bash(jj *)
 ---
 
 # Jujutsu Absorb Workflow

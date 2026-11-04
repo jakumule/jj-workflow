@@ -1,7 +1,9 @@
 ---
 name: jj-commit
 description: Create a focused jujutsu commit with selective file grouping
+argument-hint: "[commit message]"
 disable-model-invocation: true
+allowed-tools: AskUserQuestion, Bash(jj *), Bash(.claude/jj-pre-commit.sh)
 ---
 
 # Jujutsu Commit Workflow

@@ -1,6 +1,7 @@
 ---
 name: jj-concepts
-description: Background knowledge about jujutsu (jj) version control for Claude
+description: Jujutsu (jj) version control concepts and commands. Use whenever working in a repository that contains a .jj/ directory, or before running any version-control command there. In jj repos, git commands are blocked and jj is used instead.
+when_to_use: Committing, describing, splitting, squashing, rebasing, pushing, bookmarks (branches), conflicts, revsets, filesets, workspaces, undoing via the op log, or whenever you are about to reach for a git command in a jj repo.
 ---
 
 # Jujutsu (jj) Version Control Concepts
@@ -309,7 +310,7 @@ If the branch genuinely still exists on the remote and you want it gone everywhe
 jj workspaces are like git worktrees but better:
 - Each workspace has its own `@` (working copy)
 - All workspaces share the same commit graph — no merging needed
-- Create: `jj workspace add <name> --revision @`
+- Create: `jj workspace add <path> --name <name> --revision @`
 - Remove: `jj workspace forget <name>`
 
 ## Revset Syntax

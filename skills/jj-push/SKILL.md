@@ -1,7 +1,9 @@
 ---
 name: jj-push
 description: Point a bookmark at the right change and push it to the remote
+argument-hint: "[bookmark]"
 disable-model-invocation: true
+allowed-tools: Bash(jj *), Bash(gh pr create *)
 ---
 
 # Jujutsu Push Workflow

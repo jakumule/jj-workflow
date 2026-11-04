@@ -1,7 +1,9 @@
 ---
 name: develop
 description: Enter a jj workspace for isolated development work
+argument-hint: "[feature name]"
 disable-model-invocation: true
+allowed-tools: EnterWorktree, Bash(jj *)
 ---
 
 # Development Workspace
@@ -39,8 +41,8 @@ Tell the user:
 
 When work is done, remind the user:
 - Commits are already in the repository (no merge/push needed between workspaces)
-- Clean up with: `scripts/cleanup-workspace.sh <name>` (from the plugin) or `jj workspace forget <name>`
-- The workspace directory can then be deleted
+- Leave with the `ExitWorktree` tool and choose to remove the worktree. That triggers the WorktreeRemove hook, which runs `jj workspace forget` and deletes `.claude/worktrees/<name>`.
+- If the session already ended with the workspace kept: `scripts/cleanup-workspace.sh <name>` (from the plugin) or `jj workspace forget <name>`, then delete the directory
 
 ## Why No Manual Merging?
 

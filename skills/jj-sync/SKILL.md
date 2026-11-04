@@ -1,7 +1,9 @@
 ---
 name: jj-sync
 description: Fetch from the remote and rebase in-progress work onto the updated trunk
+argument-hint: "[target revset]"
 disable-model-invocation: true
+allowed-tools: Bash(jj *)
 ---
 
 # Jujutsu Sync Workflow

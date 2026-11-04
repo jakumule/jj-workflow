@@ -1,12 +1,14 @@
 ---
 name: jj-resolve
 description: Walk through resolving jj conflicts, which are stored as data in commits
+argument-hint: "[change-id]"
 disable-model-invocation: true
+allowed-tools: Bash(jj *)
 ---
 
 # Jujutsu Conflict Resolution Workflow
 
-Resolve conflicts in a jj repo. jj treats conflicts as **data recorded in commits** — they don't block operations and they persist until cleared. See `skills/jj-concepts/references/conflicts.md` for the full marker format; this command is the step-by-step.
+Resolve conflicts in a jj repo. jj treats conflicts as **data recorded in commits** — they don't block operations and they persist until cleared. See `../jj-concepts/references/conflicts.md` for the full marker format; this command is the step-by-step.
 
 ## Arguments
 - `$ARGUMENTS` - Optional change ID to resolve. Defaults to the conflicted commit(s) shown in `jj log`.
