@@ -18,11 +18,13 @@ if [ -z "$NAME" ]; then
   exit 1
 fi
 
-if ROOT=$(jj -R "$CWD" workspace root 2>/dev/null); then
+# cd rather than -R: -R only accepts the workspace root, and Claude may be in a subdirectory
+if ROOT=$(cd "$CWD" && jj workspace root 2>/dev/null); then
   DIR="$ROOT/.claude/worktrees/$NAME"
   mkdir -p "$(dirname "$DIR")"
-  # --revision @ gives the workspace a fresh empty change on top of the current @
-  jj -R "$ROOT" workspace add "$DIR" --name "${NAME//\//-}" --revision @ >&2
+  # Default parents: the new @ is a sibling of the current @ (on @-), not its child.
+  # Basing it on @ would rebase the workspace (making it stale) on every edit in the main one.
+  jj -R "$ROOT" workspace add "$DIR" --name "${NAME//\//-}" >&2
 elif ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null); then
   # Not a jj repo: mirror Claude Code's default (worktree-<name> branch under .claude/worktrees)
   DIR="$ROOT/.claude/worktrees/$NAME"

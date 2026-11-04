@@ -1,7 +1,7 @@
 {
   "name": "jj-workflow",
   "description": "Teaches Claude Code to use jujutsu (jj) instead of git for version control. Blocks git commands in jj repos, guards against jj commands that would open an interactive editor, maps Claude Code worktrees to jj workspaces, and ships /jj-commit, /jj-sync, /jj-push, /jj-resolve, /jj-absorb and /develop plus background jj knowledge.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": { "name": "kalupa" },
   "homepage": "https://github.com/kalupa/jj-workflow",
   "repository": "https://github.com/kalupa/jj-workflow",

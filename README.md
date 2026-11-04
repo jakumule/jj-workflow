@@ -5,7 +5,7 @@ A Claude Code plugin that teaches Claude to use [jujutsu (jj)](https://martinvon
 ## What it does
 
 - **Intercepts git commands** in jj repos and suggests the jj equivalent
-- **Guards against interactive editors** — blocks `jj commit`/`describe`/`squash` without `-m`, and `jj split` without paths
+- **Guards against interactive editors** — blocks `jj commit`/`describe`/`squash` without `-m`, `jj split` without paths, and commands that always open an editor or TUI (`jj diffedit`, `jj arrange`, `jj config edit`, `jj resolve` without `--tool :ours|:theirs`)
 - **`/jj-commit`** — selective file grouping and commit workflow
 - **`/jj-sync`** — fetch and rebase in-progress work onto the updated trunk
 - **`/jj-push`** — point a bookmark at the right change and push it

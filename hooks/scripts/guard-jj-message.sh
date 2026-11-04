@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # guard-jj-message.sh — Blocks jj commands that would open an interactive editor.
-# Covers commit/describe/split/squash without -m, --editor, and -i/--interactive.
+# Covers commit/describe/split/squash without -m, --editor, -i/--interactive, and commands
+# that always open an editor or TUI (diffedit, arrange, config edit, resolve with a merge tool).
 # Called as a PreToolUse hook for Bash. Reads hook input JSON from stdin
 # (command at tool_input.command). Denies via JSON on stdout; exit 0 otherwise allows.
 
@@ -20,6 +21,26 @@ SPLIT_VALUE_OPTS = {"-r", "--revision", "-o", "--onto", "-d", "--destination",
 def has(rest, short, long):
     return any(t == short or t == long or t.startswith(long + "=")
                or (short and t.startswith(short) and not t.startswith("--")) for t in rest)
+
+# Built-in resolve tools that never open anything
+NONINTERACTIVE_TOOLS = {":ours", ":theirs"}
+ALWAYS_INTERACTIVE = {
+    "diffedit": "always opens an interactive diff editor. Edit the files in a child (jj new <rev>) and jj squash -u, or jj restore --from <rev> <paths>.",
+    "arrange": "opens an interactive TUI. Reorder with jj rebase -r <rev> -A|-B <target> instead.",
+}
+
+def value(rest, long):
+    for i, t in enumerate(rest):
+        if t == long and i + 1 < len(rest):
+            return rest[i + 1]
+        if t.startswith(long + "="):
+            return t.split("=", 1)[1]
+    return None
+
+def resolve_problem(rest):
+    if has(rest, "-l", "--list") or value(rest, "--tool") in NONINTERACTIVE_TOOLS:
+        return None
+    return "without --tool :ours/:theirs opens an interactive merge tool. Edit the conflict markers in the file instead (see /jj-resolve), or use jj resolve --list to inspect."
 
 def problem(sub, rest):
     if has(rest, "", "--editor"):
@@ -52,9 +73,17 @@ for seg in hooklib.segments(command):
         continue
     idx, sub = hooklib.subcommand(seg, GLOBAL_OPTS)
     sub = ALIASES.get(sub, sub)
-    if sub not in ("commit", "describe", "split", "squash"):
+    rest = seg[idx + 1:]
+    if sub in ALWAYS_INTERACTIVE:
+        reason = ALWAYS_INTERACTIVE[sub]
+    elif sub in ("config", "sparse") and rest[:1] == ["edit"]:
+        reason = "edit opens an editor. Use jj %s set ... instead." % sub
+    elif sub == "resolve":
+        reason = resolve_problem(rest)
+    elif sub in ("commit", "describe", "split", "squash"):
+        reason = problem(sub, rest)
+    else:
         continue
-    reason = problem(sub, seg[idx + 1:])
     if reason:
         hooklib.deny("BLOCK: jj %s %s" % (sub, reason))
         break

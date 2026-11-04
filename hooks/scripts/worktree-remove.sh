@@ -16,7 +16,7 @@ if [ -z "$DIR" ]; then
     echo "WorktreeRemove: no path or name in hook input" >&2
     exit 1
   fi
-  DIR="$(jj -R "${CWD:-$PWD}" workspace root)/.claude/worktrees/$NAME"
+  DIR="$(cd "${CWD:-$PWD}" && jj workspace root)/.claude/worktrees/$NAME"
 fi
 
 # Only ever delete directories created by worktree-create.sh
@@ -26,6 +26,8 @@ case "$DIR" in
 esac
 
 if [ -d "$DIR/.jj" ]; then
+  # Running inside the workspace snapshots unrecorded edits before forgetting it
+  jj -R "$DIR" workspace update-stale >/dev/null 2>&1 || true
   jj -R "$DIR" workspace forget >/dev/null 2>&1 || true
 elif [ -e "$DIR/.git" ]; then
   # git fallback from worktree-create.sh; keeps the worktree-<name> branch
