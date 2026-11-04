@@ -5,6 +5,16 @@
 set -euo pipefail
 
 WORKSPACE_NAME="${1:?Usage: cleanup-workspace.sh <workspace-name>}"
+# Workspaces created by /develop (worktree-create.sh) live under .claude/worktrees/
+WORKSPACE_DIR="$(jj workspace root)/.claude/worktrees/$WORKSPACE_NAME"
+
+remove_workspace_dir() {
+  # Only ever delete directories created by worktree-create.sh
+  case "$WORKSPACE_DIR" in
+    */.claude/worktrees/?*) [ -d "$WORKSPACE_DIR" ] && rm -rf "$WORKSPACE_DIR" ;;
+  esac
+  return 0
+}
 
 echo "Cleaning up workspace: $WORKSPACE_NAME"
 echo ""
@@ -33,9 +43,7 @@ read -p "Choice [1-3]: " choice
 case "$choice" in
   1)
     jj workspace forget "$WORKSPACE_NAME"
-    if [ -d "../$WORKSPACE_NAME" ]; then
-      rm -rf "../$WORKSPACE_NAME"
-    fi
+    remove_workspace_dir
     echo ""
     echo "Workspace deleted. Commits remain in repository."
     echo "In main workspace, use: jj new <commit-id> to build on those commits"
@@ -43,9 +51,7 @@ case "$choice" in
   2)
     jj new "$WORKSPACE_NAME@" -m "Work from $WORKSPACE_NAME"
     jj workspace forget "$WORKSPACE_NAME"
-    if [ -d "../$WORKSPACE_NAME" ]; then
-      rm -rf "../$WORKSPACE_NAME"
-    fi
+    remove_workspace_dir
     echo ""
     echo "Changes moved to new commit and workspace deleted."
     ;;
