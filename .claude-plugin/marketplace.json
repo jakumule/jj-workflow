@@ -1,11 +1,12 @@
 {
   "name": "jj-workflow",
+  "description": "Claude Code plugin for working with jujutsu (jj) instead of git.",
   "owner": { "name": "kalupa" },
   "plugins": [
     {
       "name": "jj-workflow",
       "source": "./",
-      "description": "Teaches Claude Code to use jujutsu (jj) instead of git. Intercepts git commands in jj repos, provides /jj-commit and /develop slash commands, and includes background jj knowledge."
+      "description": "Teaches Claude Code to use jujutsu (jj) instead of git. Blocks git commands in jj repos, maps worktrees to jj workspaces, provides /jj-commit, /jj-sync, /jj-push, /jj-resolve, /jj-absorb and /develop, and includes background jj knowledge."
     }
   ]
 }
