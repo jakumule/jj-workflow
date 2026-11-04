@@ -23,9 +23,9 @@ Based on the task description, suggest a name:
 ### 2. Enter workspace using EnterWorktree tool
 
 Call the `EnterWorktree` tool with the suggested name. This triggers the WorktreeCreate hook which:
-1. Creates a new jj workspace: `jj workspace add <name> --revision @`
-2. Changes into the new directory
-3. Creates a fresh empty change: `jj new @`
+1. Creates a new jj workspace at `.claude/worktrees/<name>`: `jj workspace add <path> --name <name> --revision @`
+2. Gives it a fresh empty change on top of the current `@` (no separate `jj new` needed)
+3. Hands the path back to Claude Code, which switches the session into it
 
 ### 3. Explain the workspace model
 
