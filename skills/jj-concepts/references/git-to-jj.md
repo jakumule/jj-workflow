@@ -47,7 +47,7 @@
 | `git checkout <branch>` | `jj new <bookmark>` | Create new change at bookmark |
 | `git switch <branch>` | `jj new <bookmark>` | Same as checkout |
 | `git checkout -b <name>` | `jj new` then `jj bookmark set <name>` | New change + bookmark |
-| *(advance branch)* | `jj bookmark advance` / `jj ba` | Move bookmarks forward |
+| *(advance branch)* | `jj bookmark advance --to @-` | Move bookmarks forward (defaults to `@`, which is empty after `jj commit`) |
 
 ## History Editing
 
@@ -95,7 +95,8 @@ This mirrors how `git add` and `git stash` map to "not needed" above — the git
 | Git | Jujutsu (jj) | Notes |
 |-----|-------------|-------|
 | `git mv <old> <new>` | `mv <old> <new>` | jj auto-detects renames |
-| `git rm <file>` | `jj file untrack <file>` | Stop tracking file |
+| `git rm <file>` | `rm <file>` | jj snapshots the deletion |
+| `git rm --cached <file>` | `jj file untrack <file>` | File must also match an ignore rule, or it is re-tracked |
 | `git checkout -- <file>` | `jj restore <file>` | Discard changes to file |
 
 ## Inspection
@@ -107,7 +108,7 @@ This mirrors how `git add` and `git stash` map to "not needed" above — the git
 | `git log -G <pat>` (pickaxe) | `jj log -r 'diff_lines(regex:<pat>)'` | Find commits whose diff touches a pattern |
 | `git reflog` | `jj op log` | Repo-wide history of operations / undo timeline |
 | *(how did this commit evolve?)* | `jj evolog` | Per-change evolution across rewrites (modern name; `obslog` is a kept alias) |
-| `git log main..HEAD` | `jj log -r @::trunk()` | Revset range |
+| `git log main..HEAD` | `jj log -r 'trunk()..@'` | Revset range |
 | `git ls-files` | `jj file list` | List tracked files in the working copy |
 | `git grep <pat>` | `rg --no-require-git <pat>` or `grep <pat> $(jj file list)` | Search tracked content (no `git grep` equivalent) |
 | `git rev-parse --show-toplevel` | `jj workspace root` | Absolute path to the workspace root |

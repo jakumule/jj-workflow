@@ -1,7 +1,9 @@
 ---
 name: develop
 description: Enter a jj workspace for isolated development work
+argument-hint: "[feature name]"
 disable-model-invocation: true
+allowed-tools: EnterWorktree, Bash(jj *)
 ---
 
 # Development Workspace
@@ -23,8 +25,8 @@ Based on the task description, suggest a name:
 ### 2. Enter workspace using EnterWorktree tool
 
 Call the `EnterWorktree` tool with the suggested name. This triggers the WorktreeCreate hook which:
-1. Creates a new jj workspace at `.claude/worktrees/<name>`: `jj workspace add <path> --name <name> --revision @`
-2. Gives it a fresh empty change on top of the current `@` (no separate `jj new` needed)
+1. Creates a new jj workspace at `.claude/worktrees/<name>`: `jj workspace add <path> --name <name>`
+2. Gives it a fresh empty change on the same parent as the main workspace's `@` — a sibling, so edits in either workspace never make the other one stale. Uncommitted work in the main `@` is **not** carried over; commit it first (`/jj-commit`) if the workspace needs it
 3. Hands the path back to Claude Code, which switches the session into it
 
 ### 3. Explain the workspace model
@@ -39,8 +41,9 @@ Tell the user:
 
 When work is done, remind the user:
 - Commits are already in the repository (no merge/push needed between workspaces)
-- Clean up with: `scripts/cleanup-workspace.sh <name>` (from the plugin) or `jj workspace forget <name>`
-- The workspace directory can then be deleted
+- Leave with the `ExitWorktree` tool and choose to remove the worktree. That triggers the WorktreeRemove hook, which runs `jj workspace forget` and deletes `.claude/worktrees/<name>`.
+- If the session already ended with the workspace kept: run `scripts/cleanup-workspace.sh <name>` (from the plugin) from another workspace, or `jj workspace forget <name>` then delete the directory
+- If a jj command in either workspace reports *"The working copy is stale"*, run `jj workspace update-stale` there
 
 ## Why No Manual Merging?
 
@@ -52,10 +55,10 @@ git checkout main && git merge feature  # Manual merge!
 
 **jj workspaces** share all commits — no merging:
 ```bash
-jj workspace add dev --revision @
-cd dev && jj new @
+jj workspace add ../dev
+cd ../dev
 # ... work and commit with: jj commit -m "Dev work" ...
 cd ../default && jj log  # Commits already visible!
 ```
 
-Key: jj workspaces share the same commit graph. Creating `jj new @` in a workspace gives it its own working copy while keeping main's `@` untouched.
+Key: jj workspaces share the same commit graph. Each workspace gets its own `@`, so main's working copy is untouched.

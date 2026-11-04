@@ -1,7 +1,9 @@
 ---
 name: jj-push
 description: Point a bookmark at the right change and push it to the remote
+argument-hint: "[bookmark]"
 disable-model-invocation: true
+allowed-tools: Bash(jj *), Bash(gh pr create *)
 ---
 
 # Jujutsu Push Workflow
@@ -23,7 +25,9 @@ Run `jj log`. The working copy `@` is usually an empty commit on top of your fin
   ```bash
   jj bookmark set <name> -r <change-id>
   ```
+  Moving a bookmark backwards or sideways (e.g. after reordering) needs `--allow-backwards`.
 - **If there is no bookmark yet**, propose a name (from the change description or `$ARGUMENTS`) and create it the same way. Confirm the name with the user before creating.
+- **Quick one-off push without choosing a name:** `jj git push -c <change-id>` creates a `push-<change-id>` bookmark and pushes it in one step.
 
 Use `jj bookmark list` to see what already exists and where it points.
 
@@ -45,4 +49,10 @@ jj git push -b <bookmark>
 
 ### 5. Offer a PR (optional)
 
-If the remote is GitHub and the user wants one, offer to open a PR with `gh pr create`. Otherwise just report the pushed bookmark and the remote it landed on.
+If the remote is GitHub and the user wants one, offer to open a PR:
+
+```bash
+gh pr create --head <bookmark> --base <trunk-bookmark> --title "..." --body "..."
+```
+
+Always pass `--head`: in a jj repo git's `HEAD` is detached (or there is no top-level `.git` at all), so `gh` cannot infer the branch. Otherwise just report the pushed bookmark and the remote it landed on.

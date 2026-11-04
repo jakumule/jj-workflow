@@ -1,6 +1,7 @@
 ---
 name: jj-concepts
-description: Background knowledge about jujutsu (jj) version control for Claude
+description: Jujutsu (jj) version control concepts and commands. Use whenever working in a repository that contains a .jj/ directory, or before running any version-control command there. In jj repos, git commands are blocked and jj is used instead.
+when_to_use: Committing, describing, splitting, squashing, rebasing, pushing, bookmarks (branches), conflicts, revsets, filesets, workspaces, undoing via the op log, or whenever you are about to reach for a git command in a jj repo.
 ---
 
 # Jujutsu (jj) Version Control Concepts
@@ -250,7 +251,7 @@ Bookmarks map to git branches when pushing, but work differently:
 
 **Key differences from git branches:**
 - **No "current bookmark"** — `@` is not "on" a bookmark. Bookmarks are just labels pointing at commits, not a current location.
-- **Bookmarks don't move on commit** — in git, committing advances the current branch. In jj, bookmarks stay put. You move them explicitly. **This is the most common agent foot-gun:** after `jj commit` your new work sits *above* the bookmark, so `jj git push` pushes nothing new. You must first advance the bookmark — `jj bookmark move <name> --to @-` (or `jj bookmark advance` / `jj ba`) — then push. The `/jj-commit` command ends with this reminder for exactly this reason.
+- **Bookmarks don't move on commit** — in git, committing advances the current branch. In jj, bookmarks stay put. You move them explicitly. **This is the most common agent foot-gun:** after `jj commit` your new work sits *above* the bookmark, so `jj git push` pushes nothing new. You must first advance the bookmark — `jj bookmark move <name> --to @-` or `jj bookmark advance --to @-` — then push. Note the `--to @-`: `advance` defaults to `@`, which right after `jj commit` is the new *empty* change, and jj refuses to push a commit with no description. The `/jj-commit` command ends with this reminder for exactly this reason.
 - **Remote tracking is visible** — `bookmark@origin` is a separate ref. After fetching, you can see local and remote diverge before pushing.
 - **Moving backwards requires a flag** — `jj bookmark move name --allow-backwards` (unlike `git branch -f`).
 - **Deletion is two-step** — delete locally, then push the deletion separately.
@@ -260,8 +261,8 @@ jj bookmark create <name> -r <change-id>  # Create at specific commit
 jj bookmark set <name>                     # Point bookmark to @
 jj bookmark move <name> --to <change-id>  # Move to any commit (only existing bookmarks)
 jj bookmark move <name> --to <id> --allow-backwards  # Move to an ancestor
-jj bookmark advance                          # Advance closest bookmark(s) to @
-jj bookmark advance <name>                   # Advance specific bookmark to @
+jj bookmark advance --to @-                  # Advance closest bookmark(s) to @- (the usual target after jj commit)
+jj bookmark advance <name> --to @-           # Advance a specific bookmark
 jj bookmark advance <name> --to <change-id>  # Advance specific bookmark to target
 jj bookmark list --all                     # List local + remote tracking bookmarks
 jj bookmark delete <name>                  # Mark deleted locally
@@ -275,7 +276,7 @@ jj git fetch                              # Fetch from remote
 
 **`bookmark move` vs `bookmark advance`:**
 - `move` — explicit: you say exactly where the bookmark goes
-- `advance` — without args, finds the closest bookmark(s) that are ancestors of `@` and moves them forward to `@`; with a name, advances that specific bookmark to `@`; useful after squashing/rebasing when the bookmark is lagging behind your work
+- `advance` — finds the closest bookmark(s) that are ancestors of the target and moves them forward to it (only forward); with a name, advances that specific bookmark. The target defaults to `@` (configurable via `revsets.bookmark-advance-to`), so pass `--to @-` when `@` is an empty working-copy change
 
 **Bookmark operations do not affect `@`** — unlike `git checkout <branch>` which moves HEAD and updates the working tree, moving or advancing a bookmark in jj is purely administrative. The working copy stays exactly where it is.
 
@@ -309,8 +310,19 @@ If the branch genuinely still exists on the remote and you want it gone everywhe
 jj workspaces are like git worktrees but better:
 - Each workspace has its own `@` (working copy)
 - All workspaces share the same commit graph — no merging needed
-- Create: `jj workspace add <name> --revision @`
+- Create: `jj workspace add <path> --name <name>` (new `@` on the parents of the current `@`)
 - Remove: `jj workspace forget <name>`
+- Find one: `jj workspace list`, `jj workspace root --name <name>`; refer to another workspace's working copy as `<name>@`
+
+### Stale working copies
+
+When an operation in one workspace rewrites another workspace's `@` (or an ancestor of it — e.g. you edit a commit the other workspace is built on, or rebase its stack), that other workspace becomes **stale**. The next jj command there fails with *"The working copy is stale"*. Fix it from inside that workspace:
+
+```bash
+jj workspace update-stale
+```
+
+This is safe: it updates the files on disk to the rewritten `@` (snapshotting any unrecorded edits first). To avoid it, don't base a workspace's work on another workspace's `@` — `jj workspace add` without `--revision @` makes siblings, not a child.
 
 ## Revset Syntax
 

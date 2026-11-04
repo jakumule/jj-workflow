@@ -5,6 +5,7 @@ A Claude Code plugin that teaches Claude to use [jujutsu (jj)](https://martinvon
 ## What it does
 
 - **Intercepts git commands** in jj repos and suggests the jj equivalent
+- **Guards against interactive editors** — blocks `jj commit`/`describe`/`squash` without `-m`, `jj split` without paths, and commands that always open an editor or TUI (`jj diffedit`, `jj arrange`, `jj config edit`, `jj resolve` without `--tool :ours|:theirs`)
 - **`/jj-commit`** — selective file grouping and commit workflow
 - **`/jj-sync`** — fetch and rebase in-progress work onto the updated trunk
 - **`/jj-push`** — point a bookmark at the right change and push it
@@ -29,17 +30,20 @@ claude plugin install jj-workflow@jj-workflow
 ## Structure
 
 ```
-.claude-plugin/plugin.json    Plugin manifest
-hooks/hooks.json              Hook definitions (git blocking, worktree lifecycle)
-hooks/scripts/block-git.sh    Git command interceptor
-commands/jj-commit.md         /jj-commit slash command
-commands/jj-sync.md           /jj-sync slash command
-commands/jj-push.md           /jj-push slash command
-commands/jj-resolve.md        /jj-resolve slash command
-commands/jj-absorb.md         /jj-absorb slash command
-commands/develop.md           /develop slash command
-skills/jj-concepts/           Background jj knowledge for Claude
-scripts/cleanup-workspace.sh  Workspace cleanup helper
+.claude-plugin/plugin.json          Plugin manifest
+hooks/hooks.json                    Hook definitions (git blocking, editor guard, worktree lifecycle)
+hooks/scripts/block-git.sh          Git command interceptor
+hooks/scripts/guard-jj-message.sh   Blocks jj commands that would open an editor
+hooks/scripts/worktree-*.sh         WorktreeCreate/WorktreeRemove → jj workspaces
+hooks/scripts/hooklib.py            Shared hook-input parsing (stdlib python3)
+skills/jj-commit/                   /jj-commit
+skills/jj-sync/                     /jj-sync
+skills/jj-push/                     /jj-push
+skills/jj-resolve/                  /jj-resolve
+skills/jj-absorb/                   /jj-absorb
+skills/develop/                     /develop
+skills/jj-concepts/                 Background jj knowledge for Claude
+scripts/cleanup-workspace.sh        Workspace cleanup helper
 ```
 
 ## Pre-commit validation
@@ -58,7 +62,7 @@ cargo check
 
 ## How git blocking works
 
-The PreToolUse hook intercepts any `git` command when a `.jj/` directory is found in the directory tree. It maps the git subcommand to its jj equivalent and blocks with a helpful message:
+The PreToolUse hook intercepts `git` anywhere in a Bash command (including after `cd … &&`, env assignments, or `git -C <dir>`) when a `.jj/` directory is found above the session's working directory. It maps the git subcommand to its jj equivalent and blocks with a helpful message:
 
 ```
 BLOCK: This is a jj repository. Use jj instead of git.
@@ -69,4 +73,8 @@ In non-jj repos, git commands pass through normally.
 
 ## Workspace model
 
-`/develop` creates jj workspaces via Claude Code's `EnterWorktree` mechanism. Unlike git worktrees, jj workspaces share the same commit graph — no merging needed. Clean up with `scripts/cleanup-workspace.sh <name>`.
+`/develop` creates jj workspaces via Claude Code's `EnterWorktree` mechanism. Unlike git worktrees, jj workspaces share the same commit graph — no merging needed. Leave with `ExitWorktree` (or exit the session) and choose to remove the worktree; the WorktreeRemove hook forgets the jj workspace and deletes it. For a workspace that was kept, use `scripts/cleanup-workspace.sh <name>`.
+
+The worktree hooks replace Claude Code's built-in worktree creation wherever the plugin is installed, so in plain git repos they fall back to a normal `git worktree` on a `worktree-<name>` branch.
+
+Requires `python3` (hooks parse their JSON input with it) and `jj`.

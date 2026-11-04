@@ -1,7 +1,9 @@
 ---
 name: jj-sync
 description: Fetch from the remote and rebase in-progress work onto the updated trunk
+argument-hint: "[target revset]"
 disable-model-invocation: true
+allowed-tools: Bash(jj *)
 ---
 
 # Jujutsu Sync Workflow
@@ -33,10 +35,18 @@ This updates remote-tracking bookmarks (e.g. `main@origin`) without touching you
 ### 4. Rebase onto the updated trunk
 
 ```bash
-jj rebase -o trunk()        # or the target from $ARGUMENTS
+jj rebase -b @ -o 'trunk()'        # or the target from $ARGUMENTS
 ```
 
-`-o`/`--onto` is the modern flag (`-d` is a legacy alias). jj rebases `@` and its ancestors that aren't already in the target, and rebases descendants automatically.
+Quote revsets containing `()` — unquoted, the shell reads them as syntax. `-o`/`--onto` is the modern flag (`-d` is a legacy alias). `-b @` (the default) moves `@` and its ancestors that aren't already in the target, and descendants follow automatically.
+
+If the user has several independent stacks (not just the one under `@`), rebase all of them at once:
+
+```bash
+jj rebase -s 'roots(trunk()..mutable())' -o 'trunk()'
+```
+
+Changes that were merged upstream become empty after the rebase; jj abandons them automatically.
 
 ### 5. Handle conflicts (if any)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # worktree-remove.sh — Forgets a jj workspace created by worktree-create.sh and deletes it.
-# Called as a WorktreeRemove hook. Reads hook input JSON from stdin.
+# Called as a WorktreeRemove hook. Reads hook input JSON ({"worktree_path": ...}) from stdin.
 
 set -uo pipefail
 
@@ -16,7 +16,7 @@ if [ -z "$DIR" ]; then
     echo "WorktreeRemove: no path or name in hook input" >&2
     exit 1
   fi
-  DIR="$(jj -R "${CWD:-$PWD}" workspace root)/.claude/worktrees/$NAME"
+  DIR="$(cd "${CWD:-$PWD}" && jj workspace root)/.claude/worktrees/$NAME"
 fi
 
 # Only ever delete directories created by worktree-create.sh
@@ -25,5 +25,12 @@ case "$DIR" in
   *) echo "WorktreeRemove: refusing to remove '$DIR'" >&2; exit 1 ;;
 esac
 
-jj -R "$DIR" workspace forget >/dev/null 2>&1 || true
+if [ -d "$DIR/.jj" ]; then
+  # Running inside the workspace snapshots unrecorded edits before forgetting it
+  jj -R "$DIR" workspace update-stale >/dev/null 2>&1 || true
+  jj -R "$DIR" workspace forget >/dev/null 2>&1 || true
+elif [ -e "$DIR/.git" ]; then
+  # git fallback from worktree-create.sh; keeps the worktree-<name> branch
+  git -C "$DIR" worktree remove --force "$DIR" >/dev/null 2>&1 || true
+fi
 rm -rf "$DIR"

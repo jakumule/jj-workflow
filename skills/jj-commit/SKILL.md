@@ -1,7 +1,9 @@
 ---
 name: jj-commit
 description: Create a focused jujutsu commit with selective file grouping
+argument-hint: "[commit message]"
 disable-model-invocation: true
+allowed-tools: AskUserQuestion, Bash(jj *), Bash(.claude/jj-pre-commit.sh)
 ---
 
 # Jujutsu Commit Workflow
@@ -16,19 +18,21 @@ Create focused jj commits with related changes only. Unlike git, jj has no stagi
 ### 1. Show changed files grouped by category
 
 Run `jj status` and group files into categories:
-- **Scripts**: `*.sh`, `*.hs`, `*.py`, `bin/*`
-- **Config**: `*.conf`, `*.toml`, `*.yaml`, `*.yml`, `*.json`, `CLAUDE.md`, `.claude/*`
-- **Data**: `*.journal`, `*.csv`, `*.rules`, `*.ledger`, `*.beancount`
+- **Source**: code files (`*.py`, `*.ts`, `*.go`, `*.rs`, `*.sh`, `bin/*`, ...), grouped further by top-level directory or module when that splits them into clearly unrelated changes
+- **Tests**: `test/`, `tests/`, `*_test.*`, `*.test.*`, `*.spec.*`
+- **Config**: `*.conf`, `*.toml`, `*.yaml`, `*.yml`, `*.json`, lockfiles, `CLAUDE.md`, `.claude/*`
 - **Docs**: `*.md` (excluding CLAUDE.md), `*.txt`, `*.rst`
-- **Other**: Everything else
+- **Other**: Everything else (data files, assets, ...)
+
+Prefer grouping by *what the change is about* over file type when the diff makes that obvious (e.g. a feature's code + its test + its doc belong together).
 
 **Output format:**
 ```
 Changed files by category:
 
-  [1] Scripts (2 files)
+  [1] Source (2 files)
       bin/fetch-prices.sh
-      hledger-factset-paystub.hs
+      src/report.py
 
   [2] Config (1 file)
       CLAUDE.md
@@ -71,7 +75,7 @@ jj log -r @ -r @-
 
 After the commit, remind:
 ```
-Tip: Run `jj bookmark advance` (or `jj ba`) to move bookmarks forward.
+Tip: Run `jj bookmark advance --to @-` to move the bookmark onto this commit (plain `advance` targets the new empty @).
 ```
 
 ## Key Differences from Git

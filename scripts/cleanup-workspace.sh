@@ -1,60 +1,45 @@
 #!/usr/bin/env bash
-# Clean up a jj workspace after development work is done.
+# Clean up a jj workspace after development work is done. Non-interactive, so Claude can run it.
 # Usage: cleanup-workspace.sh <workspace-name>
+# Commits made in the workspace stay in the repo; only the workspace and its directory go away.
 
 set -euo pipefail
 
 WORKSPACE_NAME="${1:?Usage: cleanup-workspace.sh <workspace-name>}"
 
-echo "Cleaning up workspace: $WORKSPACE_NAME"
-echo ""
-
-# Check if workspace exists
-if ! jj workspace list | grep -q "^$WORKSPACE_NAME:"; then
-  echo "Error: Workspace '$WORKSPACE_NAME' not found"
-  echo ""
-  echo "Active workspaces:"
-  jj workspace list
+if ! WORKSPACE_DIR=$(jj workspace root --name "$WORKSPACE_NAME" 2>/dev/null); then
+  echo "Error: Workspace '$WORKSPACE_NAME' not found" >&2
+  echo "" >&2
+  echo "Active workspaces:" >&2
+  jj workspace list >&2
   exit 1
 fi
 
-# Show what commits were made in this workspace
-echo "Commits made in this workspace:"
-jj log -r "$WORKSPACE_NAME@" --limit 5
+case "$PWD/" in
+  "$WORKSPACE_DIR"/*)
+    echo "Error: run this from another workspace, not from inside '$WORKSPACE_NAME'" >&2
+    exit 1 ;;
+esac
+
+# Snapshot unrecorded edits in the workspace so forgetting it doesn't lose them
+if [ -d "$WORKSPACE_DIR/.jj" ]; then
+  jj -R "$WORKSPACE_DIR" workspace update-stale >/dev/null 2>&1 || true
+  jj -R "$WORKSPACE_DIR" status >/dev/null 2>&1 || true
+fi
+
+echo "Cleaning up workspace: $WORKSPACE_NAME"
+echo ""
+echo "Its working copy and mutable ancestors (these stay in the repo):"
+jj log -r "::$WORKSPACE_NAME@ & mutable()" --limit 10
 echo ""
 
-# Ask what to do
-echo "Options:"
-echo "  1. Delete workspace (commits remain in repo) [recommended]"
-echo "  2. Move working copy changes to main workspace"
-echo "  3. Cancel (keep workspace)"
-read -p "Choice [1-3]: " choice
+jj workspace forget "$WORKSPACE_NAME"
 
-case "$choice" in
-  1)
-    jj workspace forget "$WORKSPACE_NAME"
-    if [ -d "../$WORKSPACE_NAME" ]; then
-      rm -rf "../$WORKSPACE_NAME"
-    fi
-    echo ""
-    echo "Workspace deleted. Commits remain in repository."
-    echo "In main workspace, use: jj new <commit-id> to build on those commits"
-    ;;
-  2)
-    jj new "$WORKSPACE_NAME@" -m "Work from $WORKSPACE_NAME"
-    jj workspace forget "$WORKSPACE_NAME"
-    if [ -d "../$WORKSPACE_NAME" ]; then
-      rm -rf "../$WORKSPACE_NAME"
-    fi
-    echo ""
-    echo "Changes moved to new commit and workspace deleted."
-    ;;
-  3)
-    echo "Cancelled — workspace kept."
-    exit 0
-    ;;
-  *)
-    echo "Invalid choice"
-    exit 1
-    ;;
+# Only ever delete directories created by worktree-create.sh
+case "$WORKSPACE_DIR" in
+  */.claude/worktrees/?*) rm -rf "$WORKSPACE_DIR" ;;
+  *) echo "Kept directory $WORKSPACE_DIR (not under .claude/worktrees/)" ;;
 esac
+
+echo ""
+echo "Workspace removed. To continue its work here: jj new <change-id>"
